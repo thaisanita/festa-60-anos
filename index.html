@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Festa de 60 Anos · Confirme sua presença</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --red:#b3121f; --red-dark:#7d0c15; --cream:#fbf1dc; --ink:#1d1414; --gold:#e8b23a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Nunito',system-ui,sans-serif; color:var(--ink); font-size:19px; line-height:1.5;
+    background:var(--red);
+    background-image:radial-gradient(rgba(255,255,255,.14) 18%, transparent 19%);
+    background-size:34px 34px;
+    min-height:100vh; padding:16px;
+  }
+  .card{
+    max-width:560px; margin:0 auto; background:var(--cream); border-radius:22px; overflow:hidden;
+    box-shadow:0 14px 40px rgba(0,0,0,.35);
+  }
+  .convite img{display:block;width:100%;height:auto}
+  .body{padding:28px 22px 32px}
+  h1{
+    font-family:'Pacifico',cursive; font-weight:400; color:var(--red); text-align:center;
+    font-size:34px; line-height:1.2; margin-bottom:6px;
+  }
+  .sub{text-align:center; font-size:18px; margin-bottom:24px}
+  .info{
+    background:#fff; border:2px dashed var(--gold); border-radius:16px; padding:16px 18px; margin-bottom:26px;
+  }
+  .info p{margin:4px 0}
+  .info b{color:var(--red-dark)}
+  label{display:block; font-weight:800; font-size:20px; margin-bottom:8px}
+  input{
+    width:100%; font:inherit; font-size:21px; padding:16px; border-radius:14px;
+    border:3px solid #d8c7a4; background:#fff; margin-bottom:8px;
+  }
+  input:focus{outline:none; border-color:var(--red)}
+  .erro{color:var(--red); font-weight:700; min-height:26px; margin-bottom:6px}
+  .btn{
+    display:flex; align-items:center; justify-content:center; gap:10px; width:100%;
+    font:inherit; font-weight:800; font-size:22px; padding:20px 16px; border-radius:16px;
+    border:none; cursor:pointer; margin-bottom:14px; text-decoration:none; text-align:center;
+  }
+  .sim{background:#1faa53; color:#fff; box-shadow:0 5px 0 #137a3a}
+  .nao{background:#fff; color:var(--ink); border:3px solid #cdb995; font-size:19px}
+  .btn:active{transform:translateY(3px)}
+  .dica{
+    text-align:center; font-size:17px; background:#fff4d6; border-radius:12px; padding:12px 14px; margin:6px 0 26px;
+  }
+  .extras{display:flex; gap:12px; flex-wrap:wrap}
+  .extras a{
+    flex:1 1 200px; background:var(--red); color:#fff; font-weight:800; font-size:18px;
+    padding:14px; border-radius:14px; text-align:center; text-decoration:none;
+  }
+  .extras a.sec{background:var(--ink)}
+  .rodape{text-align:center; font-size:15px; margin-top:24px; color:#6b5a4a}
+</style>
+</head>
+<body>
+<main class="card">
+  <div class="convite"><img src="convite.jpg" alt="Convite da Festa de 60 Anos, 11 de dezembro, das 19h à 01h, na APA – Associação, Orteliuspad 1A, Amsterdam. Dress code: anos 60."></div>
+
+  <div class="body">
+    <h1>Você vem? 🎉</h1>
+    <p class="sub">Confirme sua presença em <b>2 passos</b>:<br>escreva seu nome e toque no botão verde.</p>
+
+    <div class="info">
+      <p>📅 <b>Sexta, 11 de dezembro</b></p>
+      <p>🕖 <b>19:00 às 01:00</b></p>
+      <p>📍 <b>APA – Associação</b><br>Orteliuspad 1A, 1056 NW Amsterdam</p>
+      <p>👗 <b>Dress code:</b> Anos 60!</p>
+    </div>
+
+    <label for="nome">1. Seu nome</label>
+    <input id="nome" type="text" autocomplete="name" placeholder="Ex.: Maria Silva">
+    <div class="erro" id="erro" role="alert"></div>
+
+    <button class="btn sim" onclick="enviar(true)">✅ 2. Sim, eu vou!</button>
+    <button class="btn nao" onclick="enviar(false)">Infelizmente não poderei ir</button>
+
+    <p class="dica">Ao tocar, o <b>WhatsApp</b> abre com a mensagem pronta.<br>É só apertar <b>Enviar</b> ➤</p>
+
+    <div class="extras">
+      <a href="https://www.google.com/maps/search/?api=1&query=Orteliuspad+1A,+1056+NW+Amsterdam" target="_blank" rel="noopener">📍 Ver no mapa</a>
+      <a class="sec" href="#" onclick="agenda();return false;">🗓️ Salvar na agenda</a>
+    </div>
+
+    <p class="rodape">A presença é individual, apenas para os convidados do convite. 💛</p>
+  </div>
+</main>
+
+<script>
+  // ===== CONFIGURAÇÃO =====
+  // Número do WhatsApp que recebe as confirmações: código do país + número, só dígitos.
+  // Ex.: Holanda 31612345678 · Portugal 351912345678 · Brasil 5531987654321
+  const WHATSAPP = "31648280289";
+  // Endereço do App da Web do Google Apps Script (grava na planilha):
+  const PLANILHA_URL = "__SCRIPT_URL__";
+  // ========================
+
+  function gravarNaPlanilha(nome, vai){
+    if(!PLANILHA_URL.startsWith('https://')) return;
+    const dados = new URLSearchParams({nome: nome, resposta: vai ? 'Vai' : 'Não vai'});
+    let enviado = false;
+    try { enviado = navigator.sendBeacon(PLANILHA_URL, dados); } catch(e){}
+    if(!enviado){
+      fetch(PLANILHA_URL, {method:'POST', body:dados, mode:'no-cors', keepalive:true}).catch(()=>{});
+    }
+  }
+
+  function enviar(vai){
+    const nome = document.getElementById('nome').value.trim();
+    const erro = document.getElementById('erro');
+    if(!nome){
+      erro.textContent = 'Escreva seu nome aqui em cima 👆';
+      document.getElementById('nome').focus();
+      return;
+    }
+    erro.textContent = '';
+    const msg = vai
+      ? `Oi! Aqui é ${nome}. ✅ Confirmo minha presença na Festa de 60 Anos, dia 11 de dezembro! 🎉`
+      : `Oi! Aqui é ${nome}. Infelizmente não poderei ir à Festa de 60 Anos no dia 11 de dezembro, mas desejo uma festa linda! 💛`;
+    gravarNaPlanilha(nome, vai);
+    setTimeout(() => {
+      window.location.href = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`;
+    }, 400);
+  }
+
+  function agenda(){
+    const ics = [
+      'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Festa60//PT','BEGIN:VEVENT',
+      'UID:festa60-20261211@convite','DTSTAMP:20261106T000000Z',
+      'DTSTART;TZID=Europe/Amsterdam:20261211T190000',
+      'DTEND;TZID=Europe/Amsterdam:20261212T010000',
+      'SUMMARY:Festa de 60 Anos 🎉 (Dress code: Anos 60)',
+      'LOCATION:APA – Associação\\, Orteliuspad 1A\\, 1056 NW Amsterdam',
+      'END:VEVENT','END:VCALENDAR'
+    ].join('\r\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([ics], {type:'text/calendar'}));
+    a.download = 'festa-60-anos.ics';
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+</script>
+</body>
+</html>
