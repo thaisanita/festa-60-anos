@@ -84,6 +84,10 @@
       <label for="nome">1. Seu nome</label>
       <input id="nome" type="text" autocomplete="name" placeholder="Ex.: Maria Silva">
     </div>
+    <div id="blocoAcomp" hidden>
+      <label for="acomp">2. Nome do seu acompanhante</label>
+      <input id="acomp" type="text" placeholder="Ex.: João Silva">
+    </div>
     <div class="erro" id="erro" role="alert"></div>
 
     <div id="botoes"></div>
@@ -112,13 +116,16 @@
   const q = new URLSearchParams(location.search);
   const CONVIDADO = (q.get('n') || '').trim().slice(0, 60);
   const ACOMP = (q.get('a') || '').trim().slice(0, 60);
+  // Link genérico de casal: ?c=2 (a pessoa escreve o próprio nome e o do acompanhante)
+  const DUPLO = !!ACOMP || q.get('c') === '2';
+  function getAcomp(){ return ACOMP || (DUPLO ? document.getElementById('acomp').value.trim().slice(0, 60) : ''); }
 
   function el(tag, attrs, texto){ const e = document.createElement(tag); Object.assign(e, attrs || {}); if(texto) e.textContent = texto; return e; }
 
   function montar(){
     const botoes = document.getElementById('botoes');
-    const opcoes = ACOMP
-      ? [['dois', `✅ Sim, vamos nós dois!`, 'sim'], ['so', 'Vou só eu', 'nao'], ['nao', 'Infelizmente não poderemos ir', 'nao']]
+    const opcoes = DUPLO
+      ? [['dois', CONVIDADO ? '✅ Sim, vamos nós dois!' : '✅ 3. Sim, vamos nós dois!', 'sim'], ['so', 'Vou só eu', 'nao'], ['nao', 'Infelizmente não poderemos ir', 'nao']]
       : [['sim', CONVIDADO ? '✅ Sim, eu vou!' : '✅ 2. Sim, eu vou!', 'sim'], ['nao', 'Infelizmente não poderei ir', 'nao']];
     opcoes.forEach(([valor, texto, estilo]) => {
       const b = el('button', {className: 'btn ' + estilo}, texto);
@@ -139,6 +146,18 @@
       }
       document.getElementById('paraBox').hidden = false;
       document.getElementById('rodape').innerHTML = 'Este convite é válido somente para as pessoas indicadas acima.<br>Por favor, não estenda o convite a outras pessoas. 💛';
+    } else {
+      const para = document.getElementById('paraTexto');
+      if(DUPLO){
+        document.getElementById('blocoAcomp').hidden = false;
+        document.getElementById('sub').innerHTML = 'Confirme em <b>3 passos</b>:<br>escreva seu nome, o nome do seu acompanhante e toque no botão verde.';
+        para.append('Este convite é para ', el('b', {}, 'você e um acompanhante'), ' (2 pessoas).');
+        document.getElementById('rodape').innerHTML = 'Este convite é válido somente para você e um acompanhante.<br>Por favor, não estenda o convite a outras pessoas. 💛';
+      } else {
+        para.append('Este convite é ', el('b', {}, 'individual'), ', só para você.');
+        document.getElementById('rodape').innerHTML = 'Este convite é individual, válido somente para você.<br>Por favor, não estenda o convite a outras pessoas. 💛';
+      }
+      document.getElementById('paraBox').hidden = false;
     }
   }
 
@@ -160,7 +179,14 @@
       document.getElementById('nome').focus();
       return;
     }
+    const acomp = getAcomp();
+    if(escolha === 'dois' && !acomp){
+      erro.textContent = 'Escreva o nome do seu acompanhante 👆';
+      document.getElementById('acomp').focus();
+      return;
+    }
     erro.textContent = '';
+    const quem = acomp || 'meu acompanhante';
     const festa = 'na Festa de 60 Anos, dia 11 de dezembro';
     let msg, resposta;
     if(escolha === 'sim'){
@@ -168,17 +194,17 @@
       msg = `Oi! Aqui é ${nome}. ✅ Confirmo minha presença ${festa}! 🎉`;
     } else if(escolha === 'dois'){
       resposta = 'Vão os dois';
-      msg = `Oi! Aqui é ${nome}. ✅ Confirmo a minha presença e a de ${ACOMP} ${festa}! 🎉`;
+      msg = `Oi! Aqui é ${nome}. ✅ Confirmo a minha presença e a de ${acomp} ${festa}! 🎉`;
     } else if(escolha === 'so'){
       resposta = 'Vai só';
-      msg = `Oi! Aqui é ${nome}. ✅ Confirmo a minha presença ${festa}. ${ACOMP} não vai poder ir. 🎉`;
+      msg = `Oi! Aqui é ${nome}. ✅ Confirmo a minha presença ${festa}. ${acomp ? acomp + ' não vai' : 'Meu acompanhante não vai'} poder ir. 🎉`;
     } else {
       resposta = 'Não vai';
-      msg = ACOMP
-        ? `Oi! Aqui é ${nome}. Infelizmente eu e ${ACOMP} não poderemos ir à Festa de 60 Anos no dia 11 de dezembro, mas desejamos uma festa linda! 💛`
+      msg = DUPLO
+        ? `Oi! Aqui é ${nome}. Infelizmente eu e ${quem} não poderemos ir à Festa de 60 Anos no dia 11 de dezembro, mas desejamos uma festa linda! 💛`
         : `Oi! Aqui é ${nome}. Infelizmente não poderei ir à Festa de 60 Anos no dia 11 de dezembro, mas desejo uma festa linda! 💛`;
     }
-    gravarNaPlanilha(nome, ACOMP, resposta);
+    gravarNaPlanilha(nome, acomp, resposta);
     setTimeout(() => {
       window.location.href = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`;
     }, 400);
