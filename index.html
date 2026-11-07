@@ -59,6 +59,8 @@
   }
   .extras a.sec{background:var(--ink)}
   .rodape{text-align:center; font-size:15px; margin-top:24px; color:#6b5a4a}
+  .para{background:#fff; border:3px solid var(--red); border-radius:16px; padding:16px 18px; margin-bottom:22px; font-size:20px; text-align:center}
+  .para b{color:var(--red-dark)}
 </style>
 </head>
 <body>
@@ -66,8 +68,10 @@
   <div class="convite"><img src="convite.jpg" alt="Convite da Festa de 60 Anos, 11 de dezembro, das 19h à 01h, na APA – Associação, Orteliuspad 1A, Amsterdam. Dress code: anos 60."></div>
 
   <div class="body">
-    <h1>Você vem? 🎉</h1>
-    <p class="sub">Confirme sua presença em <b>2 passos</b>:<br>escreva seu nome e toque no botão verde.</p>
+    <h1 id="titulo">Você vem? 🎉</h1>
+    <p class="sub" id="sub">Confirme sua presença em <b>2 passos</b>:<br>escreva seu nome e toque no botão verde.</p>
+
+    <div class="para" id="paraBox" hidden>💌 <span id="paraTexto"></span></div>
 
     <div class="info">
       <p>📅 <b>Sexta, 11 de dezembro</b></p>
@@ -76,12 +80,13 @@
       <p>👗 <b>Dress code:</b> Anos 60!</p>
     </div>
 
-    <label for="nome">1. Seu nome</label>
-    <input id="nome" type="text" autocomplete="name" placeholder="Ex.: Maria Silva">
+    <div id="blocoNome">
+      <label for="nome">1. Seu nome</label>
+      <input id="nome" type="text" autocomplete="name" placeholder="Ex.: Maria Silva">
+    </div>
     <div class="erro" id="erro" role="alert"></div>
 
-    <button class="btn sim" onclick="enviar(true)">✅ 2. Sim, eu vou!</button>
-    <button class="btn nao" onclick="enviar(false)">Infelizmente não poderei ir</button>
+    <div id="botoes"></div>
 
     <p class="dica">Ao tocar, o <b>WhatsApp</b> abre com a mensagem pronta.<br>É só apertar <b>Enviar</b> ➤</p>
 
@@ -90,7 +95,7 @@
       <a class="sec" href="#" onclick="agenda();return false;">🗓️ Salvar na agenda</a>
     </div>
 
-    <p class="rodape">A presença é individual, apenas para os convidados do convite. 💛</p>
+    <p class="rodape" id="rodape">Este convite é válido somente para quem o recebeu.<br>Por favor, não estenda o convite a outras pessoas. 💛</p>
   </div>
 </main>
 
@@ -103,9 +108,43 @@
   const PLANILHA_URL = "https://script.google.com/macros/s/AKfycbwPmVUlMapM9O8JHj9doGXyxsikwy3vmFHdsH9cRnJ28nIw9MHtayxVVh9kEr9mrsKN/exec";
   // ========================
 
-  function gravarNaPlanilha(nome, vai){
+  // Convite personalizado: ?n=Nome&a=Acompanhante
+  const q = new URLSearchParams(location.search);
+  const CONVIDADO = (q.get('n') || '').trim().slice(0, 60);
+  const ACOMP = (q.get('a') || '').trim().slice(0, 60);
+
+  function el(tag, attrs, texto){ const e = document.createElement(tag); Object.assign(e, attrs || {}); if(texto) e.textContent = texto; return e; }
+
+  function montar(){
+    const botoes = document.getElementById('botoes');
+    const opcoes = ACOMP
+      ? [['dois', `✅ Sim, vamos nós dois!`, 'sim'], ['so', 'Vou só eu', 'nao'], ['nao', 'Infelizmente não poderemos ir', 'nao']]
+      : [['sim', CONVIDADO ? '✅ Sim, eu vou!' : '✅ 2. Sim, eu vou!', 'sim'], ['nao', 'Infelizmente não poderei ir', 'nao']];
+    opcoes.forEach(([valor, texto, estilo]) => {
+      const b = el('button', {className: 'btn ' + estilo}, texto);
+      b.onclick = () => enviar(valor);
+      botoes.appendChild(b);
+    });
+
+    if(CONVIDADO){
+      document.getElementById('titulo').textContent = `Olá, ${CONVIDADO}! 🎉`;
+      document.getElementById('sub').textContent = 'Para confirmar, é só tocar no botão verde.';
+      document.getElementById('blocoNome').hidden = true;
+      const para = document.getElementById('paraTexto');
+      para.append('Este convite é ');
+      if(ACOMP){
+        para.append('para ', el('b', {}, `você e ${ACOMP}`), ' (2 pessoas).');
+      } else {
+        para.append(el('b', {}, 'individual'), ', só para você.');
+      }
+      document.getElementById('paraBox').hidden = false;
+      document.getElementById('rodape').innerHTML = 'Este convite é válido somente para as pessoas indicadas acima.<br>Por favor, não estenda o convite a outras pessoas. 💛';
+    }
+  }
+
+  function gravarNaPlanilha(nome, acompanhante, resposta){
     if(!PLANILHA_URL.startsWith('https://')) return;
-    const dados = new URLSearchParams({nome: nome, resposta: vai ? 'Vai' : 'Não vai'});
+    const dados = new URLSearchParams({nome, acompanhante, resposta});
     let enviado = false;
     try { enviado = navigator.sendBeacon(PLANILHA_URL, dados); } catch(e){}
     if(!enviado){
@@ -113,8 +152,8 @@
     }
   }
 
-  function enviar(vai){
-    const nome = document.getElementById('nome').value.trim();
+  function enviar(escolha){
+    const nome = CONVIDADO || document.getElementById('nome').value.trim();
     const erro = document.getElementById('erro');
     if(!nome){
       erro.textContent = 'Escreva seu nome aqui em cima 👆';
@@ -122,14 +161,30 @@
       return;
     }
     erro.textContent = '';
-    const msg = vai
-      ? `Oi! Aqui é ${nome}. ✅ Confirmo minha presença na Festa de 60 Anos, dia 11 de dezembro! 🎉`
-      : `Oi! Aqui é ${nome}. Infelizmente não poderei ir à Festa de 60 Anos no dia 11 de dezembro, mas desejo uma festa linda! 💛`;
-    gravarNaPlanilha(nome, vai);
+    const festa = 'na Festa de 60 Anos, dia 11 de dezembro';
+    let msg, resposta;
+    if(escolha === 'sim'){
+      resposta = 'Vai';
+      msg = `Oi! Aqui é ${nome}. ✅ Confirmo minha presença ${festa}! 🎉`;
+    } else if(escolha === 'dois'){
+      resposta = 'Vão os dois';
+      msg = `Oi! Aqui é ${nome}. ✅ Confirmo a minha presença e a de ${ACOMP} ${festa}! 🎉`;
+    } else if(escolha === 'so'){
+      resposta = 'Vai só';
+      msg = `Oi! Aqui é ${nome}. ✅ Confirmo a minha presença ${festa}. ${ACOMP} não vai poder ir. 🎉`;
+    } else {
+      resposta = 'Não vai';
+      msg = ACOMP
+        ? `Oi! Aqui é ${nome}. Infelizmente eu e ${ACOMP} não poderemos ir à Festa de 60 Anos no dia 11 de dezembro, mas desejamos uma festa linda! 💛`
+        : `Oi! Aqui é ${nome}. Infelizmente não poderei ir à Festa de 60 Anos no dia 11 de dezembro, mas desejo uma festa linda! 💛`;
+    }
+    gravarNaPlanilha(nome, ACOMP, resposta);
     setTimeout(() => {
       window.location.href = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`;
     }, 400);
   }
+
+  montar();
 
   function agenda(){
     const ics = [
